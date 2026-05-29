@@ -63,56 +63,6 @@
       color: var(--color-text-secondary);
     }
     
-    .api-key-setup {
-      background: var(--color-background-primary);
-      border: 1px solid var(--color-border-tertiary);
-      border-radius: var(--border-radius-lg);
-      padding: 1.5rem;
-      margin-bottom: 2rem;
-      display: none;
-    }
-    
-    .api-key-setup.show {
-      display: block;
-    }
-    
-    .api-key-setup h3 {
-      font-size: 16px;
-      font-weight: 500;
-      margin-bottom: 1rem;
-    }
-    
-    .api-key-input-group {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-    
-    .api-key-input-group input {
-      flex: 1;
-      padding: 0.75rem;
-      border: 1px solid var(--color-border-tertiary);
-      border-radius: var(--border-radius-md);
-      font-family: var(--font-sans);
-      font-size: 14px;
-    }
-    
-    .api-key-input-group button {
-      padding: 0.75rem 1.5rem;
-      background: var(--color-background-secondary);
-      border: 1px solid var(--color-border-secondary);
-      border-radius: var(--border-radius-md);
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-    }
-    
-    .api-key-setup p {
-      font-size: 13px;
-      color: var(--color-text-secondary);
-      margin-top: 0.5rem;
-    }
-    
     .tabs {
       display: flex;
       gap: 0.5rem;
@@ -264,25 +214,15 @@
       border: 1px solid #ffcccc;
     }
     
-    .settings-btn {
-      position: fixed;
-      bottom: 2rem;
-      right: 2rem;
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: var(--color-background-secondary);
-      border: 1px solid var(--color-border-secondary);
-      cursor: pointer;
-      font-size: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-    }
-    
-    .settings-btn:hover {
-      background: var(--color-background-tertiary);
+    .success-banner {
+      background: #e6ffe6;
+      color: #0b6623;
+      padding: 1rem;
+      border-radius: var(--border-radius-md);
+      margin-bottom: 2rem;
+      font-size: 14px;
+      border: 1px solid #ccffcc;
+      text-align: center;
     }
   </style>
 </head>
@@ -293,13 +233,8 @@
       <p>Interactive demos of AI-powered insights and analysis capabilities</p>
     </div>
     
-    <div class="api-key-setup" id="apiKeySetup">
-      <h3>Setup Claude API Key</h3>
-      <div class="api-key-input-group">
-        <input type="password" id="apiKeyInput" placeholder="Enter your Claude API key (sk-ant-...)" />
-        <button onclick="saveApiKey()">Save</button>
-      </div>
-      <p>Get your free API key at <a href="https://console.anthropic.com" target="_blank" style="color: var(--color-text-secondary);">console.anthropic.com</a></p>
+    <div class="success-banner" style="display: none;" id="successBanner">
+      ✅ Connected to Claude API! Your portfolio is ready to use.
     </div>
     
     <div class="tabs">
@@ -358,28 +293,26 @@
     </div>
   </div>
 
-  <button class="settings-btn" onclick="toggleApiKeySetup()" title="API Key Settings">
-    <i class="ti ti-settings"></i>
-  </button>
-
   <script>
-    function toggleApiKeySetup() {
-      document.getElementById('apiKeySetup').classList.toggle('show');
-    }
+    // Check if API is working on load
+    window.addEventListener('load', function() {
+      checkApiConnection();
+    });
     
-    function saveApiKey() {
-      const apiKey = document.getElementById('apiKeyInput').value;
-      if (apiKey.trim()) {
-        localStorage.setItem('claudeApiKey', apiKey);
-        alert('API key saved securely in your browser!');
-        document.getElementById('apiKeySetup').classList.remove('show');
-      } else {
-        alert('Please enter a valid API key');
+    async function checkApiConnection() {
+      try {
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'test', prompt: 'test' })
+        });
+        
+        if (response.ok) {
+          document.getElementById('successBanner').style.display = 'block';
+        }
+      } catch (e) {
+        // Silent fail - API might not be set up yet
       }
-    }
-    
-    function getApiKey() {
-      return localStorage.getItem('claudeApiKey');
     }
     
     function switchTab(tab) {
@@ -389,36 +322,21 @@
       event.target.closest('.tab-btn').classList.add('active');
     }
     
-    async function callClaudeAPI(prompt) {
-      const apiKey = getApiKey();
-      
-      if (!apiKey) {
-        throw new Error('API key not set. Click the settings icon to add your Claude API key.');
-      }
-      
+    async function callBackendAPI(action, prompt) {
       try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
+        const response = await fetch('/api/analyze', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-          },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 1000,
-            messages: [
-              { role: 'user', content: prompt }
-            ]
-          })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, prompt })
         });
         
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(error.error?.message || 'API call failed');
+          throw new Error(error.error || 'API call failed');
         }
         
         const data = await response.json();
-        return data.content[0].text;
+        return data.result;
       } catch (error) {
         throw error;
       }
@@ -438,7 +356,7 @@
       try {
         const prompt = `Analyze the following text for sentiment, tone, and key themes. Provide a brief summary (2-3 sentences), then list: 1) Overall sentiment (positive/negative/neutral), 2) Tone (professional/casual/angry/etc.), 3) Key themes or topics. Keep it concise and actionable.\n\nText: "${input}"`;
         
-        const result = await callClaudeAPI(prompt);
+        const result = await callBackendAPI('sentiment', prompt);
         resultDiv.innerHTML = `<div class="result"><div class="result-title">Analysis Result</div>${escapeHtml(result)}</div>`;
       } catch (error) {
         resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
@@ -459,7 +377,7 @@
       try {
         const prompt = `Provide a comprehensive but concise research response to: "${input}"\n\nStructure your answer with:\n1. Quick answer (1-2 sentences)\n2. Key points (3-5 bullet points with details)\n3. One actionable takeaway or recommendation\n\nKeep it clear and well-organized.`;
         
-        const result = await callClaudeAPI(prompt);
+        const result = await callBackendAPI('research', prompt);
         resultDiv.innerHTML = `<div class="result"><div class="result-title">Research Findings</div>${escapeHtml(result)}</div>`;
       } catch (error) {
         resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
@@ -480,7 +398,7 @@
       try {
         const prompt = `Summarize the following content and break it down into key sections:\n\n${input}\n\nProvide:\n1. Executive summary (2-3 sentences)\n2. Main points (numbered list, 5-7 items)\n3. Key takeaways (3 bullets)\n\nBe clear and concise.`;
         
-        const result = await callClaudeAPI(prompt);
+        const result = await callBackendAPI('summarize', prompt);
         resultDiv.innerHTML = `<div class="result"><div class="result-title">Content Summary</div>${escapeHtml(result)}</div>`;
       } catch (error) {
         resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
@@ -501,7 +419,7 @@
       try {
         const prompt = `Analyze the following data and provide AI-powered insights:\n\n${input}\n\nProvide:\n1. Data overview (what this data represents)\n2. Key patterns or trends\n3. Notable findings (3-5 insights)\n4. Recommendations or next steps\n\nBe analytical and specific.`;
         
-        const result = await callClaudeAPI(prompt);
+        const result = await callBackendAPI('insights', prompt);
         resultDiv.innerHTML = `<div class="result"><div class="result-title">Data Insights</div>${escapeHtml(result)}</div>`;
       } catch (error) {
         resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
