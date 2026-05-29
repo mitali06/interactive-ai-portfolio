@@ -1,0 +1,29 @@
+{
+  "name": "interactive-ai-portfolio",
+  "version": "1.0.0",
+  "description": "A professional, interactive AI-powered portfolio tool showcasing analysis and insights capabilities",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "dev": "python3 -m http.server 8000"
+  },
+  "keywords": [
+    "ai",
+    "portfolio",
+    "claude",
+    "anthropic",
+    "analysis",
+    "insights",
+    "interactive"
+  ],
+  "author": "mitali06",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mitali06/interactive-ai-portfolio"
+  },
+  "homepage": "https://github.com/mitali06/interactive-ai-portfolio#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
