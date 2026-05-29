@@ -5,6 +5,5 @@
       "maxDuration": 60
     }
   },
-  "public": ".",
-  "buildCommand": "echo 'Building...'"
+  "outputDirectory": "."
 }
